@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ChatRequestBody } from "../types";
+import { ChatRequestBody } from "../types/chat";
 import { env } from "../config/env";
 
 const router = Router();
