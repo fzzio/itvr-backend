@@ -1,12 +1,15 @@
 import { AppDataSource } from "../config/database";
 import { InterviewSession } from "../entities/InterviewSession";
 import { DiscussionGuide } from "../entities/DiscussionGuide";
-import { Question } from "../types/guides";
+import { Question, DiscussionGuide as GuideContent } from "../types/guides";
+import { Answer, FollowUpPrompt } from "../types/followUps";
 import { AppError } from "../middlewares/errorHandler";
+import { ChatService } from "./chatService";
 
 export class SessionService {
   private sessionRepository = AppDataSource.getRepository(InterviewSession);
   private guideRepository = AppDataSource.getRepository(DiscussionGuide);
+  private chatService = new ChatService();
 
   async startSession(guideId: number) {
     const guide = await this.guideRepository.findOne({
@@ -23,7 +26,7 @@ export class SessionService {
       throw new AppError("No active version found for guide", 404);
     }
 
-    const guideContent = activeVersion.content as any;
+    const guideContent = activeVersion.content as GuideContent;
     const firstQuestion = guideContent.questions[0];
 
     const session = new InterviewSession();
@@ -56,7 +59,7 @@ export class SessionService {
       throw new AppError("Session not found", 404);
     }
 
-    const guideContent = session.guideVersion.content as any;
+    const guideContent = session.guideVersion.content as GuideContent;
     const currentQuestion = this.findQuestionById(guideContent.questions, session.state.currentQuestionId);
 
     return {
@@ -83,16 +86,70 @@ export class SessionService {
       throw new AppError("Invalid question ID", 400);
     }
 
-    const newAnswer = {
+    const guideContent = session.guideVersion.content as GuideContent;
+    const currentQuestion = this.findQuestionById(guideContent.questions, questionId);
+
+    if (!currentQuestion) {
+      throw new AppError("Question not found", 404);
+    }
+
+    // Validate answer meaningfulness
+    if (!answer || answer.trim().length === 0) {
+      throw new AppError("Answer cannot be empty", 400);
+    }
+
+    const minWords = 3; // Minimum words for a meaningful answer
+    const words = answer.trim().split(/\s+/);
+    if (words.length < minWords) {
+      throw new AppError(`Answer must contain at least ${minWords} words for a meaningful response`, 400);
+    }
+
+    // Check if the answer seems like a deflection or non-answer
+    const deflectionPatterns = [
+      /^what about/i,
+      /^why do you/i,
+      /^i don't know$/i,
+      /^no idea$/i,
+      /^maybe$/i,
+      /^not sure$/i,
+      /^\?+$/,  // Just question marks
+      /^(yes|no)$/i, // Single word yes/no
+    ];
+
+    if (deflectionPatterns.some(pattern => pattern.test(answer.trim()))) {
+      throw new AppError("Please provide a more detailed and direct answer to the question", 400);
+    }
+
+    // Create the answer object and generate follow-ups
+    const answerObj: Answer = {
       questionId,
       text: answer,
       timestamp: new Date(),
     };
 
-    session.state.answeredQuestions.push(newAnswer);
+    // Generate follow-ups if the question has rules
+    if (currentQuestion.followUpRules && currentQuestion.followUpRules.length > 0) {
+      const previousContext = currentQuestion.contextIncluded
+        ? session.state.answeredQuestions.map(a => {
+            const q = this.findQuestionById(guideContent.questions, a.questionId);
+            return q ? { question: q.text, answer: a.text } : null;
+          }).filter((ctx): ctx is { question: string; answer: string } => ctx !== null)
+        : [];
+
+      const followUps = await this.chatService.generateFollowUps(
+        currentQuestion,
+        answerObj,
+        previousContext
+      );
+
+      if (followUps.length > 0) {
+        answerObj.followUps = followUps;
+      }
+    }
+
+    session.state.answeredQuestions.push(answerObj);
     session.state.lastUpdated = new Date();
 
-    const guideContent = session.guideVersion.content as any;
     const nextQuestion = this.findNextQuestion(guideContent.questions, questionId);
 
     if (nextQuestion) {
