@@ -1,0 +1,94 @@
+Epic: Discussion-Guide Management
+As a Product Owner
+I want to upload or update a JSON/YAML discussion-guide configuration via an API
+so that the same backend can drive interviews on arbitrary topics.
+
+As a Developer
+I want to version and validate each discussion-guide upload
+so that I can safely roll back or catch schema errors before runtime.
+
+Epic: Interview-Session Lifecycle
+As an Interviewee
+I want to start a new interview session for a given discussion-guide ID
+so that I can walk through that topic’s questions in order.
+
+As a System
+I want to retrieve the next question based on the session state
+so that the front-end can display the correct prompt.
+
+As a System
+I want to record each response, timestamped and linked to its question
+so that we can replay or analyze the full transcript later.
+
+As an Interviewee
+I want to pause and resume my interview session
+so that I can pick up where I left off if I get interrupted.
+
+As a Developer
+I want to automatically mark a session “complete” when the last question is answered
+so that downstream processes (summaries, insights) can kick off.
+
+Epic: AI-Orchestration & Follow-Ups
+As a System
+I want to send each question + answer pair to the LLM with the preceding context
+so that the AI Analyst can generate dynamic follow-up prompts if configured.
+
+As a Developer
+I want to configure per-question “follow-up rules” (e.g. ask deeper if answer contains X)
+so that we can simulate an adaptive human interviewer.
+
+Epic: Data Persistence & Indexing
+As a Developer
+I want to persist raw transcripts, metadata, and LLM traces in a database
+so that we have an auditable record of every interview.
+
+As a System
+I want to index all responses in a vector store after session completion
+so that semantic search and Q&A over interview data is performant.
+
+As a Developer
+I want to seed external “background” data (e.g. article briefs, product specs) into that same index
+so that the Analyst’s answers can draw on both live interviews and curated knowledge.
+
+Epic: Insight-Brief Generation
+As a Product Manager
+I want an endpoint that, given one or more completed sessions, triggers an aggregation job
+so that I can get a synthesized “insight brief” of common themes.
+
+As a System
+I want to call the LLM with all collected responses and a templated prompt
+so that a cohesive summary document is generated automatically.
+
+As a Developer
+I want to store each generated brief alongside its source sessions
+so that I can track which interviews contributed to which insights.
+
+Epic: Analyst-Q&A Interface
+As an Interview Moderator
+I want to ask arbitrary follow-up questions of the AI Analyst via an API
+so that I can probe deeper into the data post-interview.
+
+As a System
+I want to combine semantic retrieval (from vector store) with LLM prompting
+so that Analyst answers are grounded in both seeded knowledge and real responses.
+
+Epic: API & Infrastructure Foundations
+As a Front-end Developer
+I want a clear REST/OpenAPI definition for all endpoints (sessions, guides, summaries, Q&A)
+so that I can integrate the chatbot UI smoothly.
+
+As a DevOps Engineer
+I want each microservice (config, session, AI-worker, indexer) containerized and independently deployable
+so that we can scale and iterate on them in isolation.
+
+As a Developer
+I want token-based authentication and authorization on every endpoint
+so that interview data is secure and scoped per client/project.
+
+As a Developer
+I want structured logging and error-tracking in each service
+so that we can monitor health and troubleshoot issues in production.
+
+As a Developer
+I want automated tests (unit and integration) covering key backend flows
+so that we can safely evolve the prototype into a robust product.
