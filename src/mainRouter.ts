@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 
 import chatRoutes from "./routes/chatRoutes";
 import guideRoutes from "./routes/guideRoutes";
+import sessionRoutes from "./routes/sessionRoutes";
 
 import { loggerMiddleware } from "./middlewares/loggerMiddleware";
 import { errorHandler } from "./middlewares/errorHandler";
@@ -19,7 +20,10 @@ router.get("/health", (req: Request, res: Response) => {
 // 3. Discussion guide endpoints
 router.use("/guides", guideRoutes);
 
-// 4. Chat / Gemini endpoints
+// 4. Interview session endpoints
+router.use("/sessions", sessionRoutes);
+
+// 5. Chat / Gemini endpoints
 router.use("/chat", chatRoutes);
 
 // 5. Error handler (must go last)
